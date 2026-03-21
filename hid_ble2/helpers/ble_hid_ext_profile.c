@@ -25,9 +25,9 @@ static void
         // Set advertise name (skip first byte which is the ADV type)
         strlcpy(config->adv_name + 1, hid_ext_profile_params->name, sizeof(config->adv_name) - 1);
     }
-	
-	// Set MAC address if provided
-    if(hid_ext_profile_params->mac_address[0] != 0) {
+
+    // Set MAC address if provided
+    if(hid_ext_profile_params->mac_address_set) {
         memcpy(config->mac_address, hid_ext_profile_params->mac_address, 6);
     }
 }

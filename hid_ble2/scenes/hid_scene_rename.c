@@ -52,13 +52,7 @@ bool hid_scene_rename_on_event(void* context, SceneManagerEvent event) {
         consumed = true;
         if(event.event == HidSceneRenameEventTextInput) {
 #ifdef HID_TRANSPORT_BLE
-            furi_hal_bt_stop_advertising();
-
-            app->ble_hid_profile =
-                bt_profile_start(app->bt, ble_profile_hid_ext, &app->ble_hid_cfg);
-            furi_check(app->ble_hid_profile);
-
-            furi_hal_bt_start_advertising();
+            furi_check(bt_hid_apply_cfg(app));
 #endif
 
             bt_hid_save_cfg(app);

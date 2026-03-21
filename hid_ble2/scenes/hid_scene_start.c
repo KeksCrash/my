@@ -16,6 +16,7 @@ enum HidSubmenuIndex {
     HidSubmenuIndexMouseJigglerStealth,
     HidSubmenuIndexPushToTalk,
     HidSubmenuIndexRename,
+    HidSubmenuIndexBleMac,
     HidSubmenuIndexRemovePairing,
 };
 
@@ -90,6 +91,12 @@ void hid_scene_start_on_enter(void* context) {
         app);
     submenu_add_item(
         app->submenu,
+        "Bluetooth MAC Address",
+        HidSubmenuIndexBleMac,
+        hid_scene_start_submenu_callback,
+        app);
+    submenu_add_item(
+        app->submenu,
         "Bluetooth Unpairing",
         HidSubmenuIndexRemovePairing,
         hid_scene_start_submenu_callback,
@@ -110,6 +117,8 @@ bool hid_scene_start_on_event(void* context, SceneManagerEvent event) {
             scene_manager_next_scene(app->scene_manager, HidSceneUnpair);
         } else if(event.event == HidSubmenuIndexRename) {
             scene_manager_next_scene(app->scene_manager, HidSceneRename);
+        } else if(event.event == HidSubmenuIndexBleMac) {
+            scene_manager_next_scene(app->scene_manager, HidSceneBleMac);
         } else {
             HidView view_id;
 

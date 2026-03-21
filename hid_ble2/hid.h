@@ -19,6 +19,7 @@
 #include <gui/modules/dialog_ex.h>
 #include <gui/modules/popup.h>
 #include <gui/modules/text_input.h>
+#include <gui/modules/byte_input.h>
 #include "views/hid_keynote.h"
 #include "views/hid_keyboard.h"
 #include "views/hid_numpad.h"
@@ -50,6 +51,7 @@ struct Hid {
     Submenu* submenu;
     DialogEx* dialog;
     TextInput* text_input;
+    ByteInput* byte_input;
     Popup* popup;
     HidKeynote* hid_keynote;
     HidKeyboard* hid_keyboard;
@@ -64,9 +66,11 @@ struct Hid {
     HidTikTok* hid_tiktok;
     HidPushToTalk* hid_ptt;
     HidPushToTalkMenu* hid_ptt_menu;
+    uint8_t ble_mac_buf[6];
 };
 
 void bt_hid_remove_pairing(Hid* app);
+bool bt_hid_apply_cfg(Hid* app);
 void bt_hid_save_cfg(Hid* app);
 
 void hid_hal_keyboard_press(Hid* instance, uint16_t event);

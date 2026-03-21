@@ -12,6 +12,17 @@
 #define HID_BT_CFG_FILE_TYPE "Flipper BT Remote Settings File"
 #define HID_BT_CFG_VERSION   1
 
+static void bt_hid_set_default_mac(Hid* app) {
+#ifdef HID_BLE2_INSTANCE
+    static const uint8_t default_mac[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
+
+    memcpy(app->ble_hid_cfg.mac_address, default_mac, sizeof(default_mac));
+    app->ble_hid_cfg.mac_address_set = true;
+#else
+    UNUSED(app);
+#endif
+}
+
 bool hid_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
     Hid* app = context;
@@ -43,6 +54,9 @@ static void bt_hid_load_cfg(Hid* app) {
     FlipperFormat* fff = flipper_format_file_alloc(storage);
     bool loaded = false;
 
+    app->ble_hid_cfg.name[0] = '\0';
+    app->ble_hid_cfg.mac_address_set = false;
+
     FuriString* temp_str = furi_string_alloc();
     uint32_t temp_uint = 0;
 
@@ -63,6 +77,14 @@ static void bt_hid_load_cfg(Hid* app) {
             flipper_format_rewind(fff);
         }
 
+        if(flipper_format_read_hex(
+               fff,
+               "mac",
+               app->ble_hid_cfg.mac_address,
+               sizeof(app->ble_hid_cfg.mac_address))) {
+            app->ble_hid_cfg.mac_address_set = true;
+        }
+
         loaded = true;
     } while(0);
 
@@ -73,7 +95,24 @@ static void bt_hid_load_cfg(Hid* app) {
 
     if(!loaded) {
         app->ble_hid_cfg.name[0] = '\0';
+        app->ble_hid_cfg.mac_address_set = false;
     }
+
+    if(!app->ble_hid_cfg.mac_address_set) {
+        bt_hid_set_default_mac(app);
+    }
+}
+
+bool bt_hid_apply_cfg(Hid* app) {
+    furi_hal_bt_stop_advertising();
+
+    app->ble_hid_profile = bt_profile_start(app->bt, ble_profile_hid_ext, &app->ble_hid_cfg);
+    if(!app->ble_hid_profile) {
+        return false;
+    }
+
+    furi_hal_bt_start_advertising();
+    return true;
 }
 
 void bt_hid_save_cfg(Hid* app) {
@@ -85,6 +124,14 @@ void bt_hid_save_cfg(Hid* app) {
             if(!flipper_format_write_header_cstr(fff, HID_BT_CFG_FILE_TYPE, HID_BT_CFG_VERSION))
                 break;
             if(!flipper_format_write_string_cstr(fff, "name", app->ble_hid_cfg.name)) break;
+            if(app->ble_hid_cfg.mac_address_set &&
+               !flipper_format_write_hex(
+                   fff,
+                   "mac",
+                   app->ble_hid_cfg.mac_address,
+                   sizeof(app->ble_hid_cfg.mac_address))) {
+                break;
+            }
         } while(0);
     }
 
@@ -119,6 +166,7 @@ static uint32_t hid_ptt_menu_view(void* context) {
 
 Hid* hid_alloc() {
     Hid* app = malloc(sizeof(Hid));
+    memset(app, 0, sizeof(Hid));
 
     // Gui
     app->gui = furi_record_open(RECORD_GUI);
@@ -152,6 +200,11 @@ Hid* hid_alloc() {
     app->text_input = text_input_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, HidViewTextInput, text_input_get_view(app->text_input));
+
+    // Byte input
+    app->byte_input = byte_input_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, HidViewByteInput, byte_input_get_view(app->byte_input));
 
     // Popup view
     app->popup = popup_alloc();
@@ -243,6 +296,8 @@ void hid_free(Hid* app) {
     dialog_ex_free(app->dialog);
     view_dispatcher_remove_view(app->view_dispatcher, HidViewTextInput);
     text_input_free(app->text_input);
+    view_dispatcher_remove_view(app->view_dispatcher, HidViewByteInput);
+    byte_input_free(app->byte_input);
     view_dispatcher_remove_view(app->view_dispatcher, HidViewPopup);
     popup_free(app->popup);
     view_dispatcher_remove_view(app->view_dispatcher, HidViewKeynote);
@@ -334,21 +389,8 @@ int32_t hid_ble2_app(void* p) {
 
     bt_hid_load_cfg(app);
 
-	#ifdef HID_BLE2_INSTANCE
-	// Set unique MAC address for BR2 instance
-	app->ble_hid_cfg.mac_address[0] = 0xAA;
-	app->ble_hid_cfg.mac_address[1] = 0xBB;
-	app->ble_hid_cfg.mac_address[2] = 0xCC;
-	app->ble_hid_cfg.mac_address[3] = 0xDD;
-	app->ble_hid_cfg.mac_address[4] = 0xEE;
-	app->ble_hid_cfg.mac_address[5] = 0xFF;
-	#endif
+    furi_check(bt_hid_apply_cfg(app));
 
-    app->ble_hid_profile = bt_profile_start(app->bt, ble_profile_hid_ext, &app->ble_hid_cfg);
-
-    furi_check(app->ble_hid_profile);
-
-    furi_hal_bt_start_advertising();
     bt_set_status_changed_callback(app->bt, bt_hid_connection_status_changed_callback, app);
 
     dolphin_deed(DolphinDeedPluginStart);
