@@ -1,0 +1,18 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="ir_signal_loop",
+    name="IR Loop",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ir_signal_loop_app",
+    stack_size=4 * 1024,
+    fap_category="Infrared",
+    fap_libs=["infrared"],
+    # Optional values
+    fap_description="Send one IR signal in a continuous loop",
+    fap_version="1.0",
+    fap_icon="timed_remote.png",
+    fap_author="Custom",
+    fap_weburl="https://github.com",
+    # fap_icon_assets="images",  # Image assets to compile for this application
+)
