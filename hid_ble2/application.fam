@@ -1,4 +1,21 @@
 App(
+    appid="hid_usb2",
+    name="USR2",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="hid_usb2_app",
+    stack_size=2 * 1024,
+    sources=["*.c", "!transport_ble.c"],
+    cdefines=["HID_TRANSPORT_USB", "HID_BLE2_INSTANCE"],
+    fap_description="Use Flipper as a HID remote control over USB(2)",
+    fap_version="1.1",
+    fap_category="BSU",
+    fap_icon="hid_usb_10px.png",
+    fap_icon_assets="assets",
+    fap_icon_assets_symbol="hid",
+)
+
+
+App(
     appid="hid_ble2",
     name="BR2",
     apptype=FlipperAppType.EXTERNAL,

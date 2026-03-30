@@ -20,6 +20,7 @@
 #include <gui/modules/popup.h>
 #include <gui/modules/text_input.h>
 #include <gui/modules/byte_input.h>
+#include <gui/modules/variable_item_list.h>
 #include "views/hid_keynote.h"
 #include "views/hid_keyboard.h"
 #include "views/hid_numpad.h"
@@ -49,9 +50,11 @@ struct Hid {
     ViewDispatcher* view_dispatcher;
     SceneManager* scene_manager;
     Submenu* submenu;
+    Submenu* keynote_action_submenu;
     DialogEx* dialog;
     TextInput* text_input;
     ByteInput* byte_input;
+    VariableItemList* variable_item_list;
     Popup* popup;
     HidKeynote* hid_keynote;
     HidKeyboard* hid_keyboard;
@@ -66,6 +69,7 @@ struct Hid {
     HidTikTok* hid_tiktok;
     HidPushToTalk* hid_ptt;
     HidPushToTalkMenu* hid_ptt_menu;
+    HidKeynoteAction keynote_actions[HidKeynoteButtonCount];
     uint8_t ble_mac_buf[6];
 };
 

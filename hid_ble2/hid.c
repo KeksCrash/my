@@ -10,7 +10,22 @@
 
 #define HID_BT_CFG_PATH      APP_DATA_PATH(".bt_hid2.cfg")
 #define HID_BT_CFG_FILE_TYPE "Flipper BT Remote Settings File"
-#define HID_BT_CFG_VERSION   1
+#define HID_BT_CFG_VERSION   2
+
+static const char* const hid_keynote_cfg_keys[HidKeynoteButtonCount] = {
+    "keynote_up",
+    "keynote_down",
+    "keynote_left",
+    "keynote_right",
+    "keynote_ok",
+    "keynote_back",
+};
+
+static void hid_keynote_set_default_actions(Hid* app) {
+    for(size_t i = 0; i < HidKeynoteButtonCount; i++) {
+        app->keynote_actions[i] = hid_keynote_get_default_action(i);
+    }
+}
 
 static void bt_hid_set_default_mac(Hid* app) {
 #ifdef HID_BLE2_INSTANCE
@@ -56,6 +71,7 @@ static void bt_hid_load_cfg(Hid* app) {
 
     app->ble_hid_cfg.name[0] = '\0';
     app->ble_hid_cfg.mac_address_set = false;
+    hid_keynote_set_default_actions(app);
 
     FuriString* temp_str = furi_string_alloc();
     uint32_t temp_uint = 0;
@@ -64,8 +80,8 @@ static void bt_hid_load_cfg(Hid* app) {
         if(!flipper_format_file_open_existing(fff, HID_BT_CFG_PATH)) break;
 
         if(!flipper_format_read_header(fff, temp_str, &temp_uint)) break;
-        if((strcmp(furi_string_get_cstr(temp_str), HID_BT_CFG_FILE_TYPE) != 0) ||
-           (temp_uint != HID_BT_CFG_VERSION))
+        if(strcmp(furi_string_get_cstr(temp_str), HID_BT_CFG_FILE_TYPE) != 0) break;
+        if(temp_uint == 0 || temp_uint > HID_BT_CFG_VERSION)
             break;
 
         if(flipper_format_read_string(fff, "name", temp_str)) {
@@ -85,6 +101,16 @@ static void bt_hid_load_cfg(Hid* app) {
             app->ble_hid_cfg.mac_address_set = true;
         }
 
+        if(temp_uint >= 2) {
+            for(size_t i = 0; i < HidKeynoteButtonCount; i++) {
+                uint32_t action_value = 0;
+                if(flipper_format_read_uint32(fff, hid_keynote_cfg_keys[i], &action_value, 1) &&
+                   action_value < HidKeynoteActionCount) {
+                    app->keynote_actions[i] = action_value;
+                }
+            }
+        }
+
         loaded = true;
     } while(0);
 
@@ -100,6 +126,10 @@ static void bt_hid_load_cfg(Hid* app) {
 
     if(!app->ble_hid_cfg.mac_address_set) {
         bt_hid_set_default_mac(app);
+    }
+
+    if(app->hid_keynote) {
+        hid_keynote_sync_actions(app->hid_keynote);
     }
 }
 
@@ -131,6 +161,12 @@ void bt_hid_save_cfg(Hid* app) {
                    app->ble_hid_cfg.mac_address,
                    sizeof(app->ble_hid_cfg.mac_address))) {
                 break;
+            }
+            for(size_t i = 0; i < HidKeynoteButtonCount; i++) {
+                uint32_t action_value = app->keynote_actions[i];
+                if(!flipper_format_write_uint32(fff, hid_keynote_cfg_keys[i], &action_value, 1)) {
+                    break;
+                }
             }
         } while(0);
     }
@@ -164,6 +200,11 @@ static uint32_t hid_ptt_menu_view(void* context) {
     return HidViewPushToTalkMenu;
 }
 
+static uint32_t hid_keynote_config_view(void* context) {
+    UNUSED(context);
+    return HidViewVariableItemList;
+}
+
 Hid* hid_alloc() {
     Hid* app = malloc(sizeof(Hid));
     memset(app, 0, sizeof(Hid));
@@ -189,8 +230,15 @@ Hid* hid_alloc() {
 
     // Device Type Submenu view
     app->submenu = submenu_alloc();
+    app->keynote_action_submenu = submenu_alloc();
 
     view_dispatcher_add_view(app->view_dispatcher, HidViewSubmenu, submenu_get_view(app->submenu));
+    view_set_previous_callback(
+        submenu_get_view(app->keynote_action_submenu), hid_keynote_config_view);
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        HidViewKeynoteActionSubmenu,
+        submenu_get_view(app->keynote_action_submenu));
 
     // Dialog view
     app->dialog = dialog_ex_alloc();
@@ -205,6 +253,15 @@ Hid* hid_alloc() {
     app->byte_input = byte_input_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, HidViewByteInput, byte_input_get_view(app->byte_input));
+
+    hid_keynote_set_default_actions(app);
+
+    // Variable item list
+    app->variable_item_list = variable_item_list_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        HidViewVariableItemList,
+        variable_item_list_get_view(app->variable_item_list));
 
     // Popup view
     app->popup = popup_alloc();
@@ -292,12 +349,16 @@ void hid_free(Hid* app) {
     // Free views
     view_dispatcher_remove_view(app->view_dispatcher, HidViewSubmenu);
     submenu_free(app->submenu);
+    view_dispatcher_remove_view(app->view_dispatcher, HidViewKeynoteActionSubmenu);
+    submenu_free(app->keynote_action_submenu);
     view_dispatcher_remove_view(app->view_dispatcher, HidViewDialog);
     dialog_ex_free(app->dialog);
     view_dispatcher_remove_view(app->view_dispatcher, HidViewTextInput);
     text_input_free(app->text_input);
     view_dispatcher_remove_view(app->view_dispatcher, HidViewByteInput);
     byte_input_free(app->byte_input);
+    view_dispatcher_remove_view(app->view_dispatcher, HidViewVariableItemList);
+    variable_item_list_free(app->variable_item_list);
     view_dispatcher_remove_view(app->view_dispatcher, HidViewPopup);
     popup_free(app->popup);
     view_dispatcher_remove_view(app->view_dispatcher, HidViewKeynote);
@@ -346,6 +407,29 @@ int32_t hid_usb_app(void* p) {
     Hid* app = hid_alloc();
 
     FURI_LOG_D("HID", "Starting as USB app");
+
+    FuriHalUsbInterface* usb_mode_prev = furi_hal_usb_get_config();
+    furi_hal_usb_unlock();
+    furi_check(furi_hal_usb_set_config(&usb_hid, NULL) == true);
+
+    dolphin_deed(DolphinDeedPluginStart);
+
+    scene_manager_next_scene(app->scene_manager, HidSceneStart);
+
+    view_dispatcher_run(app->view_dispatcher);
+
+    furi_hal_usb_set_config(usb_mode_prev, NULL);
+
+    hid_free(app);
+
+    return 0;
+}
+
+int32_t hid_usb2_app(void* p) {
+    UNUSED(p);
+    Hid* app = hid_alloc();
+
+    FURI_LOG_D("HID", "Starting as USB2 app");
 
     FuriHalUsbInterface* usb_mode_prev = furi_hal_usb_get_config();
     furi_hal_usb_unlock();

@@ -4,6 +4,9 @@
 enum HidSubmenuIndex {
     HidSubmenuIndexKeynote,
     HidSubmenuIndexKeynoteVertical,
+    HidSubmenuIndexKeynoteConfigured,
+    HidSubmenuIndexKeynoteConfiguredVertical,
+    HidSubmenuIndexKeynoteConfig,
     HidSubmenuIndexKeyboard,
     HidSubmenuIndexNumpad,
     HidSubmenuIndexMedia,
@@ -29,6 +32,8 @@ static void hid_scene_start_submenu_callback(void* context, uint32_t index) {
 void hid_scene_start_on_enter(void* context) {
     Hid* app = context;
     submenu_add_item(
+        app->submenu, "Media", HidSubmenuIndexMedia, hid_scene_start_submenu_callback, app);
+    submenu_add_item(
         app->submenu, "Keynote", HidSubmenuIndexKeynote, hid_scene_start_submenu_callback, app);
     submenu_add_item(
         app->submenu,
@@ -37,11 +42,27 @@ void hid_scene_start_on_enter(void* context) {
         hid_scene_start_submenu_callback,
         app);
     submenu_add_item(
+        app->submenu,
+        "Keynote Configured",
+        HidSubmenuIndexKeynoteConfigured,
+        hid_scene_start_submenu_callback,
+        app);
+    submenu_add_item(
+        app->submenu,
+        "Keynote Configured Vertical",
+        HidSubmenuIndexKeynoteConfiguredVertical,
+        hid_scene_start_submenu_callback,
+        app);
+    submenu_add_item(
+        app->submenu,
+        "Keynote Config",
+        HidSubmenuIndexKeynoteConfig,
+        hid_scene_start_submenu_callback,
+        app);
+    submenu_add_item(
         app->submenu, "Keyboard", HidSubmenuIndexKeyboard, hid_scene_start_submenu_callback, app);
     submenu_add_item(
         app->submenu, "Numpad", HidSubmenuIndexNumpad, hid_scene_start_submenu_callback, app);
-    submenu_add_item(
-        app->submenu, "Media", HidSubmenuIndexMedia, hid_scene_start_submenu_callback, app);
     submenu_add_item(
         app->submenu,
         "Apple Music macOS",
@@ -103,8 +124,11 @@ void hid_scene_start_on_enter(void* context) {
         app);
 #endif
 
-    submenu_set_selected_item(
-        app->submenu, scene_manager_get_scene_state(app->scene_manager, HidSceneStart));
+    uint32_t selected = scene_manager_get_scene_state(app->scene_manager, HidSceneStart);
+    if(selected == HidSubmenuIndexKeynote) {
+        selected = HidSubmenuIndexMedia;
+    }
+    submenu_set_selected_item(app->submenu, selected);
     view_dispatcher_switch_to_view(app->view_dispatcher, HidViewSubmenu);
 }
 
@@ -119,16 +143,30 @@ bool hid_scene_start_on_event(void* context, SceneManagerEvent event) {
             scene_manager_next_scene(app->scene_manager, HidSceneRename);
         } else if(event.event == HidSubmenuIndexBleMac) {
             scene_manager_next_scene(app->scene_manager, HidSceneBleMac);
+        } else if(event.event == HidSubmenuIndexKeynoteConfig) {
+            scene_manager_next_scene(app->scene_manager, HidSceneKeynoteConfig);
         } else {
             HidView view_id;
 
             switch(event.event) {
             case HidSubmenuIndexKeynote:
                 view_id = HidViewKeynote;
+                hid_keynote_set_mode(app->hid_keynote, HidKeynoteModeDefault);
                 hid_keynote_set_orientation(app->hid_keynote, false);
                 break;
             case HidSubmenuIndexKeynoteVertical:
                 view_id = HidViewKeynote;
+                hid_keynote_set_mode(app->hid_keynote, HidKeynoteModeDefault);
+                hid_keynote_set_orientation(app->hid_keynote, true);
+                break;
+            case HidSubmenuIndexKeynoteConfigured:
+                view_id = HidViewKeynote;
+                hid_keynote_set_mode(app->hid_keynote, HidKeynoteModeConfigured);
+                hid_keynote_set_orientation(app->hid_keynote, false);
+                break;
+            case HidSubmenuIndexKeynoteConfiguredVertical:
+                view_id = HidViewKeynote;
+                hid_keynote_set_mode(app->hid_keynote, HidKeynoteModeConfigured);
                 hid_keynote_set_orientation(app->hid_keynote, true);
                 break;
             case HidSubmenuIndexKeyboard:

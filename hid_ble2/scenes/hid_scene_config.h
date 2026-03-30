@@ -1,5 +1,6 @@
 ADD_SCENE(hid, start, Start)
 ADD_SCENE(hid, main, Main)
+ADD_SCENE(hid, keynote_config, KeynoteConfig)
 ADD_SCENE(hid, unpair, Unpair)
 ADD_SCENE(hid, rename, Rename)
 ADD_SCENE(hid, ble_mac, BleMac)
