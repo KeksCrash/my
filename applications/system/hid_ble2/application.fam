@@ -1,0 +1,33 @@
+App(
+    appid="hid_usb2",
+    name="USR2",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="hid_usb2_app",
+    stack_size=2 * 1024,
+    sources=["*.c", "!transport_ble.c", "!helpers/ducky_script.c", "!helpers/ducky_script_commands.c", "!helpers/ducky_script_keycodes.c", "!helpers/bad_usb_hid.c", "!helpers/ble_hid_ext_profile.c"],
+    cdefines=["HID_TRANSPORT_USB", "HID_BLE2_INSTANCE"],
+    fap_description="Use Flipper as a HID remote control over USB(2)",
+    fap_version="1.1",
+    fap_category="BSU",
+    fap_icon="hid_usb_10px.png",
+    fap_icon_assets="assets",
+    fap_icon_assets_symbol="hid",
+)
+
+
+App(
+    appid="hid_ble2",
+    name="BR2",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="hid_ble2_app",
+    stack_size=4 * 1024,
+    sources=["*.c", "!transport_usb.c"],
+    cdefines=["HID_TRANSPORT_BLE", "HID_BLE2_INSTANCE"],
+    fap_libs=["ble_profile"],
+    fap_description="Use Flipper as a HID remote control over Bluetooth(2)",
+    fap_version="1.1",
+    fap_category="aB",
+    fap_icon="hid_ble_10px.png",
+    fap_icon_assets="assets",
+    fap_icon_assets_symbol="hid",
+)

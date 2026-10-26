@@ -1,0 +1,16 @@
+ADD_SCENE(hid, start, Start)
+ADD_SCENE(hid, category, Category)
+ADD_SCENE(hid, main, Main)
+ADD_SCENE(hid, keynote_config, KeynoteConfig)
+ADD_SCENE(hid, keynote_picker_choice, KeynotePickerChoice)
+ADD_SCENE(hid, keynote_action_list, KeynoteActionList)
+ADD_SCENE(hid, keynote_key_picker, KeynoteKeyPicker)
+ADD_SCENE(hid, keynote_macro_edit, KeynoteMacroEdit)
+ADD_SCENE(hid, keyboard_layout, KeyboardLayout)
+#ifdef HID_TRANSPORT_BLE
+ADD_SCENE(hid, keynote_badkb_browse, KeynoteBadkbBrowse)
+ADD_SCENE(hid, unpair, Unpair)
+ADD_SCENE(hid, rename, Rename)
+ADD_SCENE(hid, ble_mac, BleMac)
+ADD_SCENE(hid, pairing, Pairing)
+#endif
